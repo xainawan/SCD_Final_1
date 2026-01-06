@@ -1,0 +1,124 @@
+### Kubernetes manifests for MERN app with namespace isolation (roll no: 22i-2453)
+
+---
+# namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: 22i-2453-mern-app
+
+---
+# frontend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: 22i-2453-mern-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: noorulain26/docker-mern-nginx-bezkoder-ui-1:latest
+        ports:
+        - containerPort: 8888
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: 22i-2453-mern-app
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - port: 8888
+      targetPort: 8888
+      nodePort: 30173
+
+---
+# backend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: 22i-2453-mern-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: noorulain26/docker-mern-nginx-bezkoder-api-1:latest
+        ports:
+        - containerPort: 6868
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: 22i-2453-mern-app
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - port: 6868
+      targetPort: 6868
+
+---
+# mongodb-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  namespace: 22i-2453-mern-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:latest
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: mongo-persistent-storage
+          mountPath: /data/db
+      volumes:
+      - name: mongo-persistent-storage
+        persistentVolumeClaim:
+          claimName: mongo-pvc
+---
+# mongo PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: 22i-2453-mern-app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
